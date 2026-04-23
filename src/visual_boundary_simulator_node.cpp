@@ -65,6 +65,11 @@ bool isInsidePolygon(const std::vector<Vec3> & polygon, const Vec3 & point)
   return inside;
 }
 
+Vec3 enuToMap(const Vec3 & enu)
+{
+  return {enu.y, -enu.x, enu.z};
+}
+
 geometry_msgs::msg::Point toPoint(const Vec3 & point)
 {
   geometry_msgs::msg::Point msg;
@@ -236,7 +241,8 @@ private:
         RCLCPP_WARN(get_logger(), "Invalid point line in %s: %s", file_path.c_str(), line.c_str());
         continue;
       }
-      points.push_back(point);
+      Vec3 point_map = enuToMap(point);
+      points.push_back(point_map);
     }
 
     return !points.empty();
