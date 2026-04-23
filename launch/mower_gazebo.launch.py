@@ -51,4 +51,23 @@ def generate_launch_description():
                 'wheel_radius': 0.12,
             }],
         ),
+        Node(
+            package='mower_gazebo',
+            executable='visual_boundary_simulator_node',
+            name='mower_visual_boundary_simulator',
+            output='screen',
+            parameters=[{
+                'odom_topic': '/odom',
+                'map_frame': 'map',
+                'camera_frame': 'camera_link',
+                'boundary_points_file': '/home/chensi/boundary_points.txt',
+                'boundary_tangential_file': '/home/chensi/boundary_tangential_vectors.txt',
+                'polygon_vertices_file': '/home/chensi/polygon_vertices.txt',
+                'boundary_half_size': 10.0,
+                'publish_period_ms': 100,
+                'camera_x': 0.36,
+                'camera_y': 0.0,
+                'camera_z': 0.28,
+            }],
+        ),
     ])

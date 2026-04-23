@@ -27,6 +27,8 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 add_executable(gazebo_simulator_node src/gazebo_simulator_node.cpp)
 target_include_directories(gazebo_simulator_node PUBLIC
@@ -45,6 +47,23 @@ ament_target_dependencies(gazebo_simulator_node
   tf2_geometry_msgs
 )
 
+add_executable(visual_boundary_simulator_node src/visual_boundary_simulator_node.cpp)
+target_include_directories(visual_boundary_simulator_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  ${mower_wrapper_client_INCLUDE_DIRS}
+)
+ament_target_dependencies(visual_boundary_simulator_node
+  geometry_msgs
+  mower_msgs
+  mower_wrapper_client
+  nav_msgs
+  rclcpp
+  tf2
+  tf2_geometry_msgs
+  tf2_ros
+  visualization_msgs
+)
+
 install(
   DIRECTORY config launch models worlds
   DESTINATION share/${PROJECT_NAME}
@@ -52,6 +71,7 @@ install(
 
 install(TARGETS
   gazebo_simulator_node
+  visual_boundary_simulator_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
