@@ -6,6 +6,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
 from launch.actions import SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -36,5 +37,18 @@ def generate_launch_description():
                 world,
             ],
             output='screen',
+        ),
+        Node(
+            package='mower_gazebo',
+            executable='gazebo_simulator_node',
+            name='mower_gazebo_simulator',
+            output='screen',
+            parameters=[{
+                'cmd_vel_topic': '/cmd_vel',
+                'odom_topic': '/odom',
+                'model_name': 'mower_robot',
+                'wheel_base': 0.68,
+                'wheel_radius': 0.12,
+            }],
         ),
     ])
