@@ -71,32 +71,69 @@
       </visual>
     </link>
 
-    <link name="front_left_wheel">
-      <pose>0.32 0.34 -0.02 1.5708 0 0</pose>
+    <link name="front_left_caster_yoke">
+      <pose>0.36 0.34 0.02 0 0 0</pose>
       <inertial>
-        <mass>1.2</mass>
+        <mass>0.4</mass>
         <inertia>
-          <ixx>0.006</ixx>
+          <ixx>0.001</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>0.006</iyy>
+          <iyy>0.001</iyy>
           <iyz>0.0</iyz>
-          <izz>0.010</izz>
+          <izz>0.001</izz>
+        </inertia>
+      </inertial>
+      <visual name="fork_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06 0.10 0.12</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.18 0.18 1</ambient>
+          <diffuse>0.22 0.22 0.22 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <link name="front_left_caster_wheel">
+      <pose>0.30 0.34 -0.02 -1.5708 0 0</pose>
+      <inertial>
+        <mass>0.8</mass>
+        <inertia>
+          <ixx>0.004</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.004</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.007</izz>
         </inertia>
       </inertial>
       <collision name="collision">
         <geometry>
           <cylinder>
             <radius>0.12</radius>
-            <length>0.08</length>
+            <length>0.06</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.8</mu>
+              <mu2>0.3</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.2</slip2>
+            </ode>
+          </friction>
+        </surface>
       </collision>
       <visual name="visual">
         <geometry>
           <cylinder>
             <radius>0.12</radius>
-            <length>0.08</length>
+            <length>0.06</length>
           </cylinder>
         </geometry>
         <material>
@@ -106,32 +143,69 @@
       </visual>
     </link>
 
-    <link name="front_right_wheel">
-      <pose>0.32 -0.34 -0.02 1.5708 0 0</pose>
+    <link name="front_right_caster_yoke">
+      <pose>0.36 -0.34 0.02 0 0 0</pose>
       <inertial>
-        <mass>1.2</mass>
+        <mass>0.4</mass>
         <inertia>
-          <ixx>0.006</ixx>
+          <ixx>0.001</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>0.006</iyy>
+          <iyy>0.001</iyy>
           <iyz>0.0</iyz>
-          <izz>0.010</izz>
+          <izz>0.001</izz>
+        </inertia>
+      </inertial>
+      <visual name="fork_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06 0.10 0.12</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.18 0.18 1</ambient>
+          <diffuse>0.22 0.22 0.22 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <link name="front_right_caster_wheel">
+      <pose>0.30 -0.34 -0.02 -1.5708 0 0</pose>
+      <inertial>
+        <mass>0.8</mass>
+        <inertia>
+          <ixx>0.004</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.004</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.007</izz>
         </inertia>
       </inertial>
       <collision name="collision">
         <geometry>
           <cylinder>
             <radius>0.12</radius>
-            <length>0.08</length>
+            <length>0.06</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.8</mu>
+              <mu2>0.3</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.2</slip2>
+            </ode>
+          </friction>
+        </surface>
       </collision>
       <visual name="visual">
         <geometry>
           <cylinder>
             <radius>0.12</radius>
-            <length>0.08</length>
+            <length>0.06</length>
           </cylinder>
         </geometry>
         <material>
@@ -142,7 +216,7 @@
     </link>
 
     <link name="rear_left_wheel">
-      <pose>-0.32 0.34 -0.02 1.5708 0 0</pose>
+      <pose>-0.32 0.34 -0.02 -1.5708 0 0</pose>
       <inertial>
         <mass>1.2</mass>
         <inertia>
@@ -161,6 +235,16 @@
             <length>0.08</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.0</slip2>
+            </ode>
+          </friction>
+        </surface>
       </collision>
       <visual name="visual">
         <geometry>
@@ -177,7 +261,7 @@
     </link>
 
     <link name="rear_right_wheel">
-      <pose>-0.32 -0.34 -0.02 1.5708 0 0</pose>
+      <pose>-0.32 -0.34 -0.02 -1.5708 0 0</pose>
       <inertial>
         <mass>1.2</mass>
         <inertia>
@@ -196,6 +280,16 @@
             <length>0.08</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.0</slip2>
+            </ode>
+          </friction>
+        </surface>
       </collision>
       <visual name="visual">
         <geometry>
@@ -211,28 +305,70 @@
       </visual>
     </link>
 
-    <joint name="front_left_wheel_joint" type="revolute">
+    <joint name="front_left_caster_swivel_joint" type="revolute">
       <parent>base_link</parent>
-      <child>front_left_wheel</child>
+      <child>front_left_caster_yoke</child>
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
           <lower>-1e16</lower>
           <upper>1e16</upper>
         </limit>
+        <dynamics>
+          <damping>0.02</damping>
+          <friction>0.0</friction>
+        </dynamics>
       </axis>
     </joint>
-    <joint name="front_right_wheel_joint" type="revolute">
-      <parent>base_link</parent>
-      <child>front_right_wheel</child>
+
+    <joint name="front_left_caster_wheel_joint" type="revolute">
+      <parent>front_left_caster_yoke</parent>
+      <child>front_left_caster_wheel</child>
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
           <lower>-1e16</lower>
           <upper>1e16</upper>
         </limit>
+        <dynamics>
+          <damping>0.01</damping>
+          <friction>0.0</friction>
+        </dynamics>
       </axis>
     </joint>
+
+    <joint name="front_right_caster_swivel_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>front_right_caster_yoke</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e16</lower>
+          <upper>1e16</upper>
+        </limit>
+        <dynamics>
+          <damping>0.02</damping>
+          <friction>0.0</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <joint name="front_right_caster_wheel_joint" type="revolute">
+      <parent>front_right_caster_yoke</parent>
+      <child>front_right_caster_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1e16</lower>
+          <upper>1e16</upper>
+        </limit>
+        <dynamics>
+          <damping>0.01</damping>
+          <friction>0.0</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
     <joint name="rear_left_wheel_joint" type="revolute">
       <parent>base_link</parent>
       <child>rear_left_wheel</child>
@@ -255,5 +391,29 @@
         </limit>
       </axis>
     </joint>
+
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <namespace>/</namespace>
+        <remapping>cmd_vel:=cmd_vel</remapping>
+        <remapping>odom:=odom</remapping>
+      </ros>
+
+      <left_joint>rear_left_wheel_joint</left_joint>
+      <right_joint>rear_right_wheel_joint</right_joint>
+
+      <wheel_separation>0.68</wheel_separation>
+      <wheel_diameter>0.24</wheel_diameter>
+
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>2.0</max_wheel_acceleration>
+
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>true</publish_wheel_tf>
+
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
   </model>
 </sdf>
