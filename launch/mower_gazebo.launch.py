@@ -68,6 +68,9 @@ def generate_launch_description():
                 'camera_x': 0.36,
                 'camera_y': 0.0,
                 'camera_z': 0.28,
+                'horizontal_fov_deg': 90.0,
+                'vertical_fov_deg': 70.0,
+                'distance_to_camera_threshold': 1.4,
             }],
         ),
     ])

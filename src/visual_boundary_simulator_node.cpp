@@ -151,6 +151,7 @@ private:
     declare_parameter("noise_sigma", 0.025);
     declare_parameter("boundary_dropout_ratio", 0.5);
     declare_parameter("publish_debug_markers", true);
+    declare_parameter("distance_to_camera_threshold", 1.4);
 
     get_parameter("odom_topic", odom_topic_);
     get_parameter("map_frame", map_frame_);
@@ -172,6 +173,7 @@ private:
     get_parameter("noise_sigma", noise_sigma_);
     get_parameter("boundary_dropout_ratio", boundary_dropout_ratio_);
     get_parameter("publish_debug_markers", publish_debug_markers_);
+    get_parameter("distance_to_camera_threshold", distance_to_camera_threshold_);
 
     noise_dist_ = std::normal_distribution<double>(0.0, noise_sigma_);
   }
@@ -453,10 +455,12 @@ private:
       return false;
     }
 
+    const double distance_to_camera = std::sqrt(
+      camera_point.x * camera_point.x + camera_point.y * camera_point.y + camera_point.z * camera_point.z);
     const double half_h = std::tan(horizontal_fov_deg_ * 0.5 / 180.0 * M_PI);
     const double half_v = std::tan(vertical_fov_deg_ * 0.5 / 180.0 * M_PI);
     return std::abs(camera_point.x / camera_point.z) <= half_h &&
-           std::abs(camera_point.y / camera_point.z) <= half_v;
+           std::abs(camera_point.y / camera_point.z) <= half_v && distance_to_camera <= distance_to_camera_threshold_;
   }
 
   void addNoise(Vec3 & point)
@@ -562,6 +566,7 @@ private:
   double noise_sigma_ = 0.025;
   double boundary_dropout_ratio_ = 0.5;
   bool publish_debug_markers_ = true;
+  double distance_to_camera_threshold_ = 1.4;
 
   std::vector<Vec3> boundary_polygon_;
   std::vector<Vec3> boundary_points_;

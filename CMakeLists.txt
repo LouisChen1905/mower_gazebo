@@ -45,6 +45,7 @@ ament_target_dependencies(gazebo_simulator_node
   std_msgs
   tf2
   tf2_geometry_msgs
+  tf2_ros
 )
 
 add_executable(visual_boundary_simulator_node src/visual_boundary_simulator_node.cpp)
