@@ -49,6 +49,10 @@ def generate_launch_description():
                 'model_name': 'mower_robot',
                 'wheel_base': 0.68,
                 'wheel_radius': 0.12,
+                'drive_linear_noise_stddev': 0.015,
+                'drive_angular_noise_stddev': 0.03,
+                'drive_linear_noise_bias': 0.0,
+                'drive_angular_noise_bias': 0.0,
             }],
         ),
         Node(

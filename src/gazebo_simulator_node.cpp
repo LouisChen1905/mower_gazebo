@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <random>
 
 #include "gazebo_msgs/msg/entity_state.hpp"
 #include "gazebo_msgs/srv/set_entity_state.hpp"
@@ -170,6 +171,10 @@ private:
     declare_parameter("wheel_radius", 0.12);
     declare_parameter("command_timeout_ms", 300.0);
     declare_parameter("status_period_ms", 200);
+    declare_parameter("drive_linear_noise_stddev", 0.0);
+    declare_parameter("drive_angular_noise_stddev", 0.0);
+    declare_parameter("drive_linear_noise_bias", 0.0);
+    declare_parameter("drive_angular_noise_bias", 0.0);
 
     get_parameter("cmd_vel_topic", cmd_vel_topic_);
     get_parameter("odom_topic", odom_topic_);
@@ -179,17 +184,26 @@ private:
     get_parameter("wheel_radius", wheel_radius_);
     get_parameter("command_timeout_ms", command_timeout_ms_);
     get_parameter("status_period_ms", status_period_ms_);
+    get_parameter("drive_linear_noise_stddev", drive_linear_noise_stddev_);
+    get_parameter("drive_angular_noise_stddev", drive_angular_noise_stddev_);
+    get_parameter("drive_linear_noise_bias", drive_linear_noise_bias_);
+    get_parameter("drive_angular_noise_bias", drive_angular_noise_bias_);
   }
 
   void onPlanning(const mower_msgs::msg::Planning & planning)
   {
-    last_linear_speed_cmd_ = planning.line_speed;
-    last_angular_speed_cmd_ = planning.angular_speed;
+    const double linear_cmd = applyGaussianNoise(
+      planning.line_speed, drive_linear_noise_bias_, drive_linear_noise_stddev_);
+    const double angular_cmd = applyGaussianNoise(
+      planning.angular_speed, drive_angular_noise_bias_, drive_angular_noise_stddev_);
+
+    last_linear_speed_cmd_ = linear_cmd;
+    last_angular_speed_cmd_ = angular_cmd;
     last_command_time_ = now();
 
     geometry_msgs::msg::Twist cmd_vel;
-    cmd_vel.linear.x = planning.line_speed;
-    cmd_vel.angular.z = planning.angular_speed;
+    cmd_vel.linear.x = linear_cmd;
+    cmd_vel.angular.z = angular_cmd;
     cmd_vel_publisher_->publish(cmd_vel);
   }
 
@@ -358,6 +372,17 @@ private:
     return static_cast<int16_t>(std::lround(clamped));
   }
 
+  double applyGaussianNoise(double value, double bias, double stddev)
+  {
+    if (stddev <= 0.0 && bias == 0.0) {
+      return value;
+    }
+
+    const double noise = (stddev > 0.0) ?
+      std::normal_distribution<double>(0.0, stddev)(rand_engine_) : 0.0;
+    return value + bias + noise;
+  }
+
   std::string cmd_vel_topic_;
   std::string odom_topic_;
   std::string model_name_;
@@ -367,10 +392,15 @@ private:
   double wheel_radius_ = 0.12;
   double command_timeout_ms_ = 300.0;
   int status_period_ms_ = 200;
+  double drive_linear_noise_stddev_ = 0.0;
+  double drive_angular_noise_stddev_ = 0.0;
+  double drive_linear_noise_bias_ = 0.0;
+  double drive_angular_noise_bias_ = 0.0;
 
   double last_linear_speed_cmd_ = 0.0;
   double last_angular_speed_cmd_ = 0.0;
   rclcpp::Time last_command_time_{0, 0, RCL_ROS_TIME};
+  std::default_random_engine rand_engine_{std::random_device{}()};
 
   bool slip_flag_ = false;
   bool has_origin_wgs_ = false;
