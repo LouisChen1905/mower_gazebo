@@ -65,12 +65,9 @@ def generate_launch_description():
                 'polygon_vertices_file': '/home/chensi/polygon_vertices.txt',
                 'boundary_half_size': 10.0,
                 'publish_period_ms': 100,
-                'camera_x': 0.36,
-                'camera_y': 0.0,
-                'camera_z': 0.28,
                 'horizontal_fov_deg': 90.0,
                 'vertical_fov_deg': 70.0,
-                'distance_to_camera_threshold': 1.4,
+                'distance_to_camera_threshold': 2.0,
             }],
         ),
     ])

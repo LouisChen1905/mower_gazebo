@@ -10,16 +10,18 @@
 #include <vector>
 
 #include "geometry_msgs/msg/point.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "geometry_msgs/msg/vector3_stamped.hpp"
 #include "mower_msgs/msg/visual_boundary_points.hpp"
 #include "mower_msgs/msg/vertex_info.hpp"
 #include "mower_wrapper_client/TopicName.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "tf2/LinearMath/Matrix3x3.h"
-#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/exceptions.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/msg/marker.hpp"
 
 namespace
@@ -30,17 +32,6 @@ struct Vec3
   double y = 0.0;
   double z = 0.0;
 };
-
-double getYaw(const geometry_msgs::msg::Quaternion & quat)
-{
-  tf2::Quaternion quaternion(quat.x, quat.y, quat.z, quat.w);
-  tf2::Matrix3x3 matrix(quaternion);
-  double roll = 0.0;
-  double pitch = 0.0;
-  double yaw = 0.0;
-  matrix.getRPY(roll, pitch, yaw);
-  return yaw;
-}
 
 bool isInsidePolygon(const std::vector<Vec3> & polygon, const Vec3 & point)
 {
@@ -67,7 +58,8 @@ bool isInsidePolygon(const std::vector<Vec3> & polygon, const Vec3 & point)
 
 Vec3 enuToMap(const Vec3 & enu)
 {
-  return {enu.y, -enu.x, enu.z};
+  // In this simulation stack, map follows ENU: x=east, y=north, z=up.
+  return enu;
 }
 
 geometry_msgs::msg::Point toPoint(const Vec3 & point)
@@ -105,7 +97,8 @@ public:
     grass_marker_publisher_ =
       create_publisher<visualization_msgs::msg::Marker>("grass_in_fov", 10);
 
-    tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
+    tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
 
     odom_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
       odom_topic_, rclcpp::SensorDataQoS(),
@@ -142,9 +135,6 @@ private:
     declare_parameter("polygon_vertices_file", std::string("/home/chensi/polygon_vertices.txt"));
     declare_parameter("grass_grid_resolution", 0.14);
     declare_parameter("grass_window_radius", 3.0);
-    declare_parameter("camera_x", 0.36);
-    declare_parameter("camera_y", 0.0);
-    declare_parameter("camera_z", 0.28);
     declare_parameter("max_depth", 2.0);
     declare_parameter("horizontal_fov_deg", 90.0);
     declare_parameter("vertical_fov_deg", 70.0);
@@ -164,9 +154,6 @@ private:
     get_parameter("polygon_vertices_file", polygon_vertices_file_);
     get_parameter("grass_grid_resolution", grass_grid_resolution_);
     get_parameter("grass_window_radius", grass_window_radius_);
-    get_parameter("camera_x", camera_x_);
-    get_parameter("camera_y", camera_y_);
-    get_parameter("camera_z", camera_z_);
     get_parameter("max_depth", max_depth_);
     get_parameter("horizontal_fov_deg", horizontal_fov_deg_);
     get_parameter("vertical_fov_deg", vertical_fov_deg_);
@@ -321,7 +308,24 @@ private:
       return;
     }
 
-    // publishCameraTransform();
+    geometry_msgs::msg::TransformStamped map_to_camera_transform;
+    geometry_msgs::msg::TransformStamped map_to_base_transform;
+    try {
+      map_to_camera_transform = tf_buffer_->lookupTransform(
+        camera_frame_, map_frame_, tf2::TimePointZero);
+      map_to_base_transform = tf_buffer_->lookupTransform(
+        map_frame_, "base_link", tf2::TimePointZero);
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "Cannot query TF needed by visual_boundary_simulator: %s", ex.what());
+      return;
+    }
+
+    const Vec3 mower_position_in_map{
+      map_to_base_transform.transform.translation.x,
+      map_to_base_transform.transform.translation.y,
+      map_to_base_transform.transform.translation.z};
 
     mower_msgs::msg::VisualBoundaryPoints visual_points;
     visual_points.timestamp = now().nanoseconds() / 1000000;
@@ -329,8 +333,9 @@ private:
     auto boundary_marker = makeMarker("boundary_in_fov", 0, 1.0, 0.0, 0.0);
     auto grass_marker = makeMarker("grass_in_fov", 0, 0.0, 1.0, 0.0);
 
-    appendBoundaryPoints(visual_points, boundary_marker);
-    appendGrassPoints(visual_points, grass_marker);
+    appendBoundaryPoints(visual_points, boundary_marker, map_to_camera_transform);
+    appendGrassPoints(
+      visual_points, grass_marker, map_to_camera_transform, mower_position_in_map);
 
     visual_points.boundary_num = static_cast<uint16_t>(
       std::min<size_t>(visual_points.points.size(), std::numeric_limits<uint16_t>::max()));
@@ -367,11 +372,12 @@ private:
 
   void appendBoundaryPoints(
     mower_msgs::msg::VisualBoundaryPoints & visual_points,
-    visualization_msgs::msg::Marker & marker)
+    visualization_msgs::msg::Marker & marker,
+    const geometry_msgs::msg::TransformStamped & map_to_camera_transform)
   {
     for (size_t i = 0; i < boundary_points_.size(); ++i) {
       const auto & map_point = boundary_points_[i];
-      auto camera_point = mapToCamera(map_point);
+      auto camera_point = mapToCamera(map_point, map_to_camera_transform);
       if (!isInCameraFov(camera_point)) {
         continue;
       }
@@ -380,7 +386,7 @@ private:
         continue;
       }
 
-      addBoundaryNoise(camera_point, i);
+      addBoundaryNoise(camera_point, i, map_to_camera_transform);
       visual_points.points.push_back(toVertex(camera_point));
       marker.points.push_back(toPoint(camera_point));
     }
@@ -388,13 +394,14 @@ private:
 
   void appendGrassPoints(
     mower_msgs::msg::VisualBoundaryPoints & visual_points,
-    visualization_msgs::msg::Marker & marker)
+    visualization_msgs::msg::Marker & marker,
+    const geometry_msgs::msg::TransformStamped & map_to_camera_transform,
+    const Vec3 & mower_position_in_map)
   {
-    const auto mower_position = currentMapPosition();
-    const double min_x = mower_position.x - grass_window_radius_;
-    const double max_x = mower_position.x + grass_window_radius_;
-    const double min_y = mower_position.y - grass_window_radius_;
-    const double max_y = mower_position.y + grass_window_radius_;
+    const double min_x = mower_position_in_map.x - grass_window_radius_;
+    const double max_x = mower_position_in_map.x + grass_window_radius_;
+    const double min_y = mower_position_in_map.y - grass_window_radius_;
+    const double max_y = mower_position_in_map.y + grass_window_radius_;
 
     for (double x = min_x; x <= max_x; x += grass_grid_resolution_) {
       for (double y = min_y; y <= max_y; y += grass_grid_resolution_) {
@@ -403,7 +410,7 @@ private:
           continue;
         }
 
-        auto camera_point = mapToCamera(map_point);
+        auto camera_point = mapToCamera(map_point, map_to_camera_transform);
         if (!isInCameraFov(camera_point)) {
           continue;
         }
@@ -415,38 +422,23 @@ private:
     }
   }
 
-  Vec3 currentMapPosition() const
+  Vec3 mapToCamera(
+    const Vec3 & map_point,
+    const geometry_msgs::msg::TransformStamped & map_to_camera_transform) const
   {
+    geometry_msgs::msg::PointStamped map_point_msg;
+    map_point_msg.header.frame_id = map_frame_;
+    map_point_msg.header.stamp = map_to_camera_transform.header.stamp;
+    map_point_msg.point = toPoint(map_point);
+
+    geometry_msgs::msg::PointStamped camera_point_msg;
+    tf2::doTransform(map_point_msg, camera_point_msg, map_to_camera_transform);
+
     return {
-      latest_odom_.pose.pose.position.x,
-      latest_odom_.pose.pose.position.y,
-      latest_odom_.pose.pose.position.z
+      camera_point_msg.point.x,
+      camera_point_msg.point.y,
+      camera_point_msg.point.z
     };
-  }
-
-  Vec3 mapToCamera(const Vec3 & map_point) const
-  {
-    const auto & pose = latest_odom_.pose.pose;
-    const double yaw = getYaw(pose.orientation);
-    const double cos_yaw = std::cos(yaw);
-    const double sin_yaw = std::sin(yaw);
-
-    const double dx = map_point.x - pose.position.x;
-    const double dy = map_point.y - pose.position.y;
-    const double dz = map_point.z - pose.position.z;
-
-    // World/map to base_link. base x is forward, base y is left, base z is up.
-    const double base_x = cos_yaw * dx + sin_yaw * dy;
-    const double base_y = -sin_yaw * dx + cos_yaw * dy;
-    const double base_z = dz;
-
-    const double rel_x = base_x - camera_x_;
-    const double rel_y = base_y - camera_y_;
-    const double rel_z = base_z - camera_z_;
-
-    // camera_link follows optical-frame convention used by test_panel:
-    // z forward, x horizontal, y vertical.
-    return {-rel_y, -rel_z, rel_x};
   }
 
   bool isInCameraFov(const Vec3 & camera_point) const
@@ -456,11 +448,13 @@ private:
     }
 
     const double distance_to_camera = std::sqrt(
-      camera_point.x * camera_point.x + camera_point.y * camera_point.y + camera_point.z * camera_point.z);
+      camera_point.x * camera_point.x + camera_point.y * camera_point.y +
+      camera_point.z * camera_point.z);
     const double half_h = std::tan(horizontal_fov_deg_ * 0.5 / 180.0 * M_PI);
     const double half_v = std::tan(vertical_fov_deg_ * 0.5 / 180.0 * M_PI);
     return std::abs(camera_point.x / camera_point.z) <= half_h &&
-           std::abs(camera_point.y / camera_point.z) <= half_v && distance_to_camera <= distance_to_camera_threshold_;
+           std::abs(camera_point.y / camera_point.z) <= half_v &&
+           distance_to_camera <= distance_to_camera_threshold_;
   }
 
   void addNoise(Vec3 & point)
@@ -470,14 +464,17 @@ private:
     point.z += noise_dist_(rand_engine_);
   }
 
-  void addBoundaryNoise(Vec3 & point, size_t index)
+  void addBoundaryNoise(
+    Vec3 & point,
+    size_t index,
+    const geometry_msgs::msg::TransformStamped & map_to_camera_transform)
   {
     if (index >= boundary_tangential_vectors_.size()) {
       addNoise(point);
       return;
     }
 
-    auto tangent = mapVectorToCamera(boundary_tangential_vectors_[index]);
+    auto tangent = mapVectorToCamera(boundary_tangential_vectors_[index], map_to_camera_transform);
     const double tangent_norm = std::sqrt(
       tangent.x * tangent.x + tangent.y * tangent.y + tangent.z * tangent.z);
     if (tangent_norm < 1e-6) {
@@ -503,46 +500,25 @@ private:
     point.z += normal.z * normal_noise + tangent.z * tangent_noise;
   }
 
-  Vec3 mapVectorToCamera(const Vec3 & map_vector) const
+  Vec3 mapVectorToCamera(
+    const Vec3 & map_vector,
+    const geometry_msgs::msg::TransformStamped & map_to_camera_transform) const
   {
-    const auto & pose = latest_odom_.pose.pose;
-    const double yaw = getYaw(pose.orientation);
-    const double cos_yaw = std::cos(yaw);
-    const double sin_yaw = std::sin(yaw);
+    geometry_msgs::msg::Vector3Stamped map_vector_msg;
+    map_vector_msg.header.frame_id = map_frame_;
+    map_vector_msg.header.stamp = map_to_camera_transform.header.stamp;
+    map_vector_msg.vector.x = map_vector.x;
+    map_vector_msg.vector.y = map_vector.y;
+    map_vector_msg.vector.z = map_vector.z;
 
-    const double base_x = cos_yaw * map_vector.x + sin_yaw * map_vector.y;
-    const double base_y = -sin_yaw * map_vector.x + cos_yaw * map_vector.y;
-    const double base_z = map_vector.z;
+    geometry_msgs::msg::Vector3Stamped camera_vector_msg;
+    tf2::doTransform(map_vector_msg, camera_vector_msg, map_to_camera_transform);
 
-    return {-base_y, -base_z, base_x};
-  }
-
-  void publishCameraTransform()
-  {
-    geometry_msgs::msg::TransformStamped transform;
-    transform.header.stamp = now();
-    transform.header.frame_id = map_frame_;
-    transform.child_frame_id = camera_frame_;
-
-    const auto & pose = latest_odom_.pose.pose;
-    const double yaw = getYaw(pose.orientation);
-    const double cos_yaw = std::cos(yaw);
-    const double sin_yaw = std::sin(yaw);
-
-    transform.transform.translation.x =
-      pose.position.x + cos_yaw * camera_x_ - sin_yaw * camera_y_;
-    transform.transform.translation.y =
-      pose.position.y + sin_yaw * camera_x_ + cos_yaw * camera_y_;
-    transform.transform.translation.z = pose.position.z + camera_z_;
-
-    // camera z forward, x right, y down relative to base_link x forward/y left/z up.
-    tf2::Quaternion q_map_base;
-    q_map_base.setRPY(0.0, 0.0, yaw);
-    tf2::Quaternion q_base_camera;
-    q_base_camera.setRPY(0.0, -M_PI_2, M_PI_2);
-    transform.transform.rotation = tf2::toMsg(q_map_base * q_base_camera);
-
-    tf_broadcaster_->sendTransform(transform);
+    return {
+      camera_vector_msg.vector.x,
+      camera_vector_msg.vector.y,
+      camera_vector_msg.vector.z
+    };
   }
 
   std::string odom_topic_;
@@ -557,9 +533,6 @@ private:
   double boundary_sample_step_ = 0.08;
   double grass_grid_resolution_ = 0.14;
   double grass_window_radius_ = 3.0;
-  double camera_x_ = 0.36;
-  double camera_y_ = 0.0;
-  double camera_z_ = 0.28;
   double max_depth_ = 2.0;
   double horizontal_fov_deg_ = 90.0;
   double vertical_fov_deg_ = 70.0;
@@ -585,7 +558,8 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr grass_marker_publisher_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
   rclcpp::TimerBase::SharedPtr publish_timer_;
-  std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
 };
 
 int main(int argc, char ** argv)
