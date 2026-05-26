@@ -156,7 +156,9 @@ private:
       if (point.z < min_depth_ || point.z > max_depth_) {
         continue;
       }
-      points.push_back(point);
+
+      const Vec3 point_in_camera({-*iter_y, -*iter_z, *iter_x});
+      points.push_back(point_in_camera);
     }
 
     return points;
