@@ -74,4 +74,22 @@ def generate_launch_description():
                 'distance_to_camera_threshold': 2.0,
             }],
         ),
+        Node(
+            package='mower_gazebo',
+            executable='visual_obstacle_simulator_node',
+            name='mower_visual_obstacle_simulator',
+            output='screen',
+            parameters=[{
+                'point_cloud_topic': '/mower_tof/points',
+                'visual_obs_topic': 'visual_obstacle_front',
+                'sensor_id': 0,
+                'object_id': 255,
+                'dynamic': 0,
+                'min_depth': 0.05,
+                'max_depth': 2.5,
+                'min_points': 3,
+                'cluster_tolerance': 0.12,
+                'max_objects': 8,
+            }],
+        ),
     ])

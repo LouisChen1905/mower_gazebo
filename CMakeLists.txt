@@ -24,6 +24,7 @@ find_package(mower_msgs REQUIRED)
 find_package(mower_wrapper_client REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -65,6 +66,18 @@ ament_target_dependencies(visual_boundary_simulator_node
   visualization_msgs
 )
 
+add_executable(visual_obstacle_simulator_node src/visual_obstacle_simulator_node.cpp)
+target_include_directories(visual_obstacle_simulator_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  ${mower_wrapper_client_INCLUDE_DIRS}
+)
+ament_target_dependencies(visual_obstacle_simulator_node
+  mower_msgs
+  mower_wrapper_client
+  rclcpp
+  sensor_msgs
+)
+
 install(
   DIRECTORY config launch models worlds
   DESTINATION share/${PROJECT_NAME}
@@ -73,6 +86,7 @@ install(
 install(TARGETS
   gazebo_simulator_node
   visual_boundary_simulator_node
+  visual_obstacle_simulator_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 

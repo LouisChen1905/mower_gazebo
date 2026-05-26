@@ -334,9 +334,9 @@
         </material>
       </visual>
       <sensor type="ray" name="front_tof">
-        <always_on>false</always_on>
+        <always_on>true</always_on>
         <update_rate>20</update_rate>
-        <visualize>false</visualize>
+        <visualize>true</visualize>
         <ray>
           <scan>
             <horizontal>
@@ -366,14 +366,14 @@
         <plugin name="front_tof_controller" filename="libgazebo_ros_ray_sensor.so">
           <ros>
             <namespace>/mower_tof</namespace>
-            <remapping>~/out:=range</remapping>
+            <remapping>~/out:=points</remapping>
           </ros>
-          <output_type>sensor_msgs/Range</output_type>
+          <output_type>sensor_msgs/PointCloud2</output_type>
           <frame_name>camera_link</frame_name>
         </plugin>
       </sensor>
       <sensor type="camera" name="front_camera">
-        <always_on>true</always_on>
+        <always_on>false</always_on>
         <update_rate>15</update_rate>
         <visualize>true</visualize>
         <camera name="front_camera_sensor">

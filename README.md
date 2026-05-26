@@ -6,9 +6,10 @@
 
 - `gazebo_simulator_node`: converts mower planning commands into `/cmd_vel`, republishes odometry as mower location/GPS-style status topics, publishes fixed sensor TFs, and supports pose reset through Gazebo's `/set_entity_state` service.
 - `visual_boundary_simulator_node`: generates `mower_msgs/msg/VisualBoundaryPoints` from the robot pose and a boundary description, with optional RViz markers for boundary and grass points in the camera field of view.
+- `visual_obstacle_simulator_node`: clusters the front ToF point cloud into separate `mower_msgs/msg/VisualObs` objects on the front visual-obstacle topic.
 - `launch/mower_gazebo.launch.py`: starts Gazebo Classic, loads the bundled world, and launches both nodes with default parameters.
 - `worlds/mower_test.world`: flat test world with a 40 m x 40 m ground plane, a simple square collision boundary, the `mower_robot` model, and a visual `boundary_points` model.
-- `models/mower_robot/model.sdf`: differential-drive mower model with rear drive wheels, front caster wheels, a Gazebo ROS diff-drive plugin, a lidar, and a camera.
+- `models/mower_robot/model.sdf`: differential-drive mower model with rear drive wheels, front caster wheels, a Gazebo ROS diff-drive plugin, a front ToF ray sensor, and a camera.
 - `models/boundary_points/model.sdf`: static visualized boundary segments included in the default world.
 - `scripts/generate_boundary_model.py`: regenerates `models/boundary_points/model.sdf` from ENU boundary points.
 
@@ -58,6 +59,7 @@ Useful runtime interfaces inferred from the code:
 - Gazebo diff-drive consumes `/cmd_vel` and publishes `/odom`.
 - `gazebo_simulator_node` subscribes to mower planning on `TOPIC_PLANNING` and publishes mower status topics such as location, RTK/GPS, motor state, safety state, and dock pole state.
 - `visual_boundary_simulator_node` publishes `TOPIC_VISUAL_BOUNDARY_POINTS` plus debug markers on `boundary_in_fov` and `grass_in_fov`.
+- `visual_obstacle_simulator_node` subscribes to `/mower_tof/points` and publishes `mower_msgs/msg/VisualObs` on `TOPIC_VISUAL_OBS_FRONT` / `visual_obstacle_front`.
 - Publish `geometry_msgs/msg/Pose` to `reset_mower_pose` to reposition the mower model in Gazebo.
 
 ## Main Assumptions And Limitations
