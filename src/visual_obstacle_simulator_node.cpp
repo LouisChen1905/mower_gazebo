@@ -265,33 +265,17 @@ private:
     const std::vector<Vec3> & points,
     const std::vector<size_t> & cluster) const
   {
-    float min_x = std::numeric_limits<float>::max();
-    float min_y = std::numeric_limits<float>::max();
-    float max_x = std::numeric_limits<float>::lowest();
-    float max_y = std::numeric_limits<float>::lowest();
-    double z_sum = 0.0;
-
-    for (const size_t index : cluster) {
-      const auto & point = points[index];
-      min_x = std::min(min_x, point.x);
-      min_y = std::min(min_y, point.y);
-      max_x = std::max(max_x, point.x);
-      max_y = std::max(max_y, point.y);
-      z_sum += point.z;
-    }
-
-    const float z = static_cast<float>(z_sum / static_cast<double>(cluster.size()));
-
     mower_msgs::msg::ObsInfo obstacle;
-    obstacle.sum = 4;
     obstacle.object_id = static_cast<uint8_t>(object_id_);
     obstacle.dynamic = static_cast<uint8_t>(dynamic_);
-    obstacle.vertex_info = {
-      makeVertex(min_x, min_y, z),
-      makeVertex(max_x, min_y, z),
-      makeVertex(max_x, max_y, z),
-      makeVertex(min_x, max_y, z),
-    };
+    for (const size_t index : cluster) {
+      const auto & point = points[index];
+      obstacle.vertex_info.push_back(makeVertex(point.x, point.y, point.z));
+    }
+
+
+    obstacle.sum = obstacle.vertex_info.size();
+
     return obstacle;
   }
 
