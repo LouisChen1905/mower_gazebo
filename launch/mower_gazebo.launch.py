@@ -1,6 +1,7 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
@@ -11,10 +12,17 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     package_share = get_package_share_directory('mower_gazebo')
+    package_prefix = get_package_prefix('mower_gazebo')
     model_path = os.path.join(package_share, 'models')
+    plugin_path = os.path.join(package_prefix, 'lib', 'mower_gazebo')
+    gazebo_model_path = os.pathsep.join(
+        path for path in [model_path, os.environ.get('GAZEBO_MODEL_PATH', '')] if path)
+    gazebo_plugin_path = os.pathsep.join(
+        path for path in [plugin_path, os.environ.get('GAZEBO_PLUGIN_PATH', '')] if path)
     default_world = os.path.join(package_share, 'worlds', 'mower_test.world')
 
     world = LaunchConfiguration('world')
+    model_name = LaunchConfiguration('model_name')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -22,9 +30,18 @@ def generate_launch_description():
             default_value=default_world,
             description='Gazebo world file to load.',
         ),
+        DeclareLaunchArgument(
+            'model_name',
+            default_value='mower_robot',
+            description='Gazebo model name used by reset_mower_pose.',
+        ),
         SetEnvironmentVariable(
             name='GAZEBO_MODEL_PATH',
-            value=model_path,
+            value=gazebo_model_path,
+        ),
+        SetEnvironmentVariable(
+            name='GAZEBO_PLUGIN_PATH',
+            value=gazebo_plugin_path,
         ),
         ExecuteProcess(
             cmd=[
@@ -46,7 +63,7 @@ def generate_launch_description():
             parameters=[{
                 'cmd_vel_topic': '/cmd_vel',
                 'odom_topic': '/odom',
-                'model_name': 'mower_robot',
+                'model_name': model_name,
                 'wheel_base': 0.68,
                 'wheel_radius': 0.12,
                 'drive_linear_noise_stddev': 0.015,

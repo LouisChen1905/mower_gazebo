@@ -18,7 +18,9 @@ else()
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(gazebo REQUIRED)
 find_package(gazebo_msgs REQUIRED)
+find_package(gazebo_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(mower_msgs REQUIRED)
 find_package(mower_wrapper_client REQUIRED)
@@ -30,6 +32,23 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
+
+add_library(ackermann_4wd_drive_plugin SHARED src/ackermann_4wd_drive_plugin.cpp)
+target_include_directories(ackermann_4wd_drive_plugin PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  ${GAZEBO_INCLUDE_DIRS}
+)
+target_link_libraries(ackermann_4wd_drive_plugin
+  ${GAZEBO_LIBRARIES}
+)
+ament_target_dependencies(ackermann_4wd_drive_plugin
+  gazebo_ros
+  geometry_msgs
+  nav_msgs
+  rclcpp
+  tf2_geometry_msgs
+  tf2_ros
+)
 
 add_executable(gazebo_simulator_node src/gazebo_simulator_node.cpp)
 target_include_directories(gazebo_simulator_node PUBLIC
@@ -84,9 +103,11 @@ install(
 )
 
 install(TARGETS
+  ackermann_4wd_drive_plugin
   gazebo_simulator_node
   visual_boundary_simulator_node
   visual_obstacle_simulator_node
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 

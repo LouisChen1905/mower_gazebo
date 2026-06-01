@@ -1,6 +1,6 @@
 # mower_gazebo
 
-`mower_gazebo` provides a ROS 2 + Gazebo Classic simulation package for the mower robot. It installs a custom Gazebo world, two bundled models, and two helper nodes that adapt Gazebo topics into the mower message interfaces used elsewhere in this workspace.
+`mower_gazebo` provides a ROS 2 + Gazebo Classic simulation package for the mower robot. It installs custom Gazebo worlds, bundled models, and helper nodes that adapt Gazebo topics into the mower message interfaces used elsewhere in this workspace.
 
 ## What It Contains
 
@@ -10,6 +10,8 @@
 - `launch/mower_gazebo.launch.py`: starts Gazebo Classic, loads the bundled world, and launches both nodes with default parameters.
 - `worlds/mower_test.world`: flat test world with a 40 m x 40 m ground plane, a simple square collision boundary, the `mower_robot` model, and a visual `boundary_points` model.
 - `models/mower_robot/model.sdf`: differential-drive mower model with rear drive wheels, front caster wheels, a Gazebo ROS diff-drive plugin, a front ToF ray sensor, and a camera.
+- `worlds/mower_ackermann_4wd.world`: flat test world that loads the `ackermann_4wd_robot` model.
+- `models/ackermann_4wd_robot/model.sdf`: Ackermann-steered mower model with four driven wheels and a package-local Gazebo plugin for `/cmd_vel` and `/odom`.
 - `models/boundary_points/model.sdf`: static visualized boundary segments included in the default world.
 - `scripts/generate_boundary_model.py`: regenerates `models/boundary_points/model.sdf` from ENU boundary points.
 
@@ -52,6 +54,14 @@ Launch a different world:
 
 ```bash
 ros2 launch mower_gazebo mower_gazebo.launch.py world:=/absolute/path/to/world.sdf
+```
+
+Launch the Ackermann + 4WD model:
+
+```bash
+ros2 launch mower_gazebo mower_gazebo.launch.py \
+  world:=$(ros2 pkg prefix mower_gazebo)/share/mower_gazebo/worlds/mower_ackermann_4wd.world \
+  model_name:=ackermann_4wd_robot
 ```
 
 Useful runtime interfaces inferred from the code:
