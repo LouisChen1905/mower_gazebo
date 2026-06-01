@@ -109,4 +109,17 @@ def generate_launch_description():
                 'max_objects': 8,
             }],
         ),
+        Node(
+            package='mower_gazebo',
+            executable='livox_point_cloud_converter_node',
+            name='livox_point_cloud_converter',
+            output='screen',
+            parameters=[{
+                'input_topic': '/sensor_lidar',
+                'output_topic': '/livox/point_cloud',
+                'coordinate_scale': 1000.0,
+                'default_intensity': 0,
+                'default_tag': 0,
+            }],
+        ),
     ])

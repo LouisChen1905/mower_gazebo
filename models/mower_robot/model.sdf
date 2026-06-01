@@ -446,7 +446,7 @@
               <samples>16</samples>
               <resolution>1.0</resolution>
               <min_angle>0.0</min_angle>
-              <max_angle>0.785398</max_angle>
+              <max_angle>0.3</max_angle>
             </vertical>
           </scan>
           <range>

@@ -97,6 +97,13 @@ ament_target_dependencies(visual_obstacle_simulator_node
   sensor_msgs
 )
 
+add_executable(livox_point_cloud_converter_node src/livox_point_cloud_converter_node.cpp)
+ament_target_dependencies(livox_point_cloud_converter_node
+  mower_msgs
+  rclcpp
+  sensor_msgs
+)
+
 install(
   DIRECTORY config launch models worlds
   DESTINATION share/${PROJECT_NAME}
@@ -105,6 +112,7 @@ install(
 install(TARGETS
   ackermann_4wd_drive_plugin
   gazebo_simulator_node
+  livox_point_cloud_converter_node
   visual_boundary_simulator_node
   visual_obstacle_simulator_node
   LIBRARY DESTINATION lib/${PROJECT_NAME}
