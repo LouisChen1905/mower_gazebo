@@ -405,6 +405,72 @@
       </sensor>
     </link>
 
+    <link name="lidar_link">
+      <pose>0.23 0.0 0.42 0 0.0872665 0</pose>
+      <inertial>
+        <mass>0.18</mass>
+        <inertia>
+          <ixx>0.0003</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.0003</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.0003</izz>
+        </inertia>
+      </inertial>
+      <visual name="lidar_housing">
+        <geometry>
+          <cylinder>
+            <radius>0.045</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.02 0.02 0.02 1</ambient>
+          <diffuse>0.03 0.03 0.03 1</diffuse>
+        </material>
+      </visual>
+      <sensor type="ray" name="front_lidar">
+        <always_on>true</always_on>
+        <update_rate>10</update_rate>
+        <visualize>false</visualize>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>720</samples>
+              <resolution>1.0</resolution>
+              <min_angle>-3.14159</min_angle>
+              <max_angle>3.14159</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>16</samples>
+              <resolution>1.0</resolution>
+              <min_angle>0.0</min_angle>
+              <max_angle>0.785398</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.10</min>
+            <max>12.0</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <plugin name="front_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
+          <ros>
+            <namespace>/</namespace>
+            <remapping>~/out:=sensor_lidar</remapping>
+          </ros>
+          <output_type>sensor_msgs/PointCloud2</output_type>
+          <frame_name>lidar_link</frame_name>
+        </plugin>
+      </sensor>
+    </link>
+
     <joint name="front_left_caster_swivel_joint" type="revolute">
       <parent>base_link</parent>
       <child>front_left_caster_yoke</child>
@@ -495,6 +561,11 @@
     <joint name="camera_joint" type="fixed">
       <parent>base_link</parent>
       <child>camera_link</child>
+    </joint>
+
+    <joint name="lidar_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>lidar_link</child>
     </joint>
 
     <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
