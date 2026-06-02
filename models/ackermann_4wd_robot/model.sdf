@@ -231,10 +231,10 @@
         <surface>
           <friction>
             <ode>
-              <mu>1.2</mu>
-              <mu2>1.2</mu2>
-              <slip1>0.02</slip1>
-              <slip2>0.02</slip2>
+              <mu>1.5</mu>
+              <mu2>1.5</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.0</slip2>
             </ode>
           </friction>
         </surface>
@@ -278,10 +278,10 @@
         <surface>
           <friction>
             <ode>
-              <mu>1.2</mu>
-              <mu2>1.2</mu2>
-              <slip1>0.02</slip1>
-              <slip2>0.02</slip2>
+              <mu>1.5</mu>
+              <mu2>1.5</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.0</slip2>
             </ode>
           </friction>
         </surface>
@@ -322,6 +322,16 @@
             <length>0.08</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.5</mu>
+              <mu2>1.5</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.0</slip2>
+            </ode>
+          </friction>
+        </surface>
       </collision>
       <visual name="visual">
         <pose>0 0 0 -1.5708 0 0</pose>
@@ -359,6 +369,16 @@
             <length>0.08</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.5</mu>
+              <mu2>1.5</mu2>
+              <slip1>0.0</slip1>
+              <slip2>0.0</slip2>
+            </ode>
+          </friction>
+        </surface>
       </collision>
       <visual name="visual">
         <pose>0 0 0 -1.5708 0 0</pose>
@@ -525,7 +545,9 @@
       <wheel_radius>0.12</wheel_radius>
       <rear_axle_to_base>0.36</rear_axle_to_base>
       <max_steer_angle>1.4</max_steer_angle>
-      <max_wheel_torque>25.0</max_wheel_torque>
+      <max_wheel_torque>8.0</max_wheel_torque>
+      <max_wheel_acceleration>8.0</max_wheel_acceleration>
+      <max_steer_rate>2.0</max_steer_rate>
       <command_timeout>0.3</command_timeout>
       <publish_odom_tf>true</publish_odom_tf>
     </plugin>

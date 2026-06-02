@@ -40,6 +40,8 @@ public:
     max_steer_angle_ = getSdfDouble(sdf, "max_steer_angle", 0.65);
     rear_axle_to_base_ = getSdfDouble(sdf, "rear_axle_to_base", wheel_base_ * 0.5);
     max_wheel_torque_ = getSdfDouble(sdf, "max_wheel_torque", 20.0);
+    max_wheel_acceleration_ = getSdfDouble(sdf, "max_wheel_acceleration", 8.0);
+    max_steer_rate_ = getSdfDouble(sdf, "max_steer_rate", 2.0);
     command_timeout_ = getSdfDouble(sdf, "command_timeout", 0.3);
     publish_odom_tf_ = getSdfBool(sdf, "publish_odom_tf", true);
 
@@ -64,6 +66,7 @@ public:
       std::bind(&Ackermann4wdDrivePlugin::OnUpdate, this, std::placeholders::_1));
 
     last_cmd_time_ = world_->SimTime();
+    last_update_time_ = world_->SimTime();
     RCLCPP_INFO(
       node_->get_logger(),
       "Ackermann 4WD plugin loaded for model [%s], cmd_vel [%s], odom [%s]",
@@ -103,14 +106,16 @@ private:
   void OnUpdate(const gazebo::common::UpdateInfo & info)
   {
     const double command_age = (info.simTime - last_cmd_time_).Double();
+    const double dt = std::max(0.0, (info.simTime - last_update_time_).Double());
+    last_update_time_ = info.simTime;
     const double linear = command_age <= command_timeout_ ? linear_cmd_ : 0.0;
     const double angular = command_age <= command_timeout_ ? angular_cmd_ : 0.0;
 
-    updateSteeringAndWheels(linear, angular);
+    updateSteeringAndWheels(linear, angular, dt);
     publishOdometry(info.simTime);
   }
 
-  void updateSteeringAndWheels(const double linear, const double angular)
+  void updateSteeringAndWheels(const double linear, const double angular, const double dt)
   {
     const double half_track = wheel_track_ * 0.5;
     const auto front_left = wheelMotionFromRearAxleCenter(wheel_base_, half_track, linear, angular);
@@ -125,17 +130,34 @@ private:
     //   front_left.steer_angle * 180.0 / M_PI,
     //   front_right.steer_angle * 180.0 / M_PI);
 
+    front_left_steer_cmd_ =
+      limitRate(front_left.steer_angle, front_left_steer_cmd_, max_steer_rate_, dt);
+    front_right_steer_cmd_ =
+      limitRate(front_right.steer_angle, front_right_steer_cmd_, max_steer_rate_, dt);
     if (front_left_steer_joint_) {
-      front_left_steer_joint_->SetPosition(0, front_left.steer_angle);
+      front_left_steer_joint_->SetPosition(0, front_left_steer_cmd_);
     }
     if (front_right_steer_joint_) {
-      front_right_steer_joint_->SetPosition(0, front_right.steer_angle);
+      front_right_steer_joint_->SetPosition(0, front_right_steer_cmd_);
     }
 
-    setWheelVelocity(front_left_wheel_joint_, front_left.linear_speed / wheel_radius_);
-    setWheelVelocity(front_right_wheel_joint_, front_right.linear_speed / wheel_radius_);
-    setWheelVelocity(rear_left_wheel_joint_, rear_left.linear_speed / wheel_radius_);
-    setWheelVelocity(rear_right_wheel_joint_, rear_right.linear_speed / wheel_radius_);
+    front_left_wheel_velocity_cmd_ = limitRate(
+      front_left.linear_speed / wheel_radius_, front_left_wheel_velocity_cmd_,
+      max_wheel_acceleration_, dt);
+    front_right_wheel_velocity_cmd_ = limitRate(
+      front_right.linear_speed / wheel_radius_, front_right_wheel_velocity_cmd_,
+      max_wheel_acceleration_, dt);
+    rear_left_wheel_velocity_cmd_ = limitRate(
+      rear_left.linear_speed / wheel_radius_, rear_left_wheel_velocity_cmd_,
+      max_wheel_acceleration_, dt);
+    rear_right_wheel_velocity_cmd_ = limitRate(
+      rear_right.linear_speed / wheel_radius_, rear_right_wheel_velocity_cmd_,
+      max_wheel_acceleration_, dt);
+
+    setWheelVelocity(front_left_wheel_joint_, front_left_wheel_velocity_cmd_);
+    setWheelVelocity(front_right_wheel_joint_, front_right_wheel_velocity_cmd_);
+    setWheelVelocity(rear_left_wheel_joint_, rear_left_wheel_velocity_cmd_);
+    setWheelVelocity(rear_right_wheel_joint_, rear_right_wheel_velocity_cmd_);
   }
 
   WheelMotion wheelMotionFromRearAxleCenter(
@@ -168,6 +190,19 @@ private:
     motion.linear_speed =
       velocity_x * std::cos(motion.steer_angle) + velocity_y * std::sin(motion.steer_angle);
     return motion;
+  }
+
+  static double limitRate(
+    const double target,
+    const double current,
+    const double max_rate,
+    const double dt)
+  {
+    if (dt <= 0.0 || max_rate <= 0.0) {
+      return target;
+    }
+    const double max_delta = max_rate * dt;
+    return current + std::clamp(target - current, -max_delta, max_delta);
   }
 
   void setWheelVelocity(const gazebo::physics::JointPtr & joint, const double velocity)
@@ -247,12 +282,21 @@ private:
   double max_steer_angle_{0.65};
   double rear_axle_to_base_{0.36};
   double max_wheel_torque_{20.0};
+  double max_wheel_acceleration_{8.0};
+  double max_steer_rate_{2.0};
   double command_timeout_{0.3};
   bool publish_odom_tf_{true};
 
   double linear_cmd_{0.0};
   double angular_cmd_{0.0};
+  double front_left_steer_cmd_{0.0};
+  double front_right_steer_cmd_{0.0};
+  double front_left_wheel_velocity_cmd_{0.0};
+  double front_right_wheel_velocity_cmd_{0.0};
+  double rear_left_wheel_velocity_cmd_{0.0};
+  double rear_right_wheel_velocity_cmd_{0.0};
   gazebo::common::Time last_cmd_time_;
+  gazebo::common::Time last_update_time_;
 };
 }  // namespace mower_gazebo
 
