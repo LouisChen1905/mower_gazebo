@@ -45,6 +45,8 @@ public:
     max_wheel_torque_ = getSdfDouble(sdf, "max_wheel_torque", 20.0);
     max_wheel_acceleration_ = getSdfDouble(sdf, "max_wheel_acceleration", 8.0);
     max_steer_rate_ = getSdfDouble(sdf, "max_steer_rate", 2.0);
+    max_steer_torque_ = getSdfDouble(sdf, "max_steer_torque", 12.0);
+    steer_position_gain_ = getSdfDouble(sdf, "steer_position_gain", 6.0);
     command_timeout_ = getSdfDouble(sdf, "command_timeout", 1.0);
     publish_odom_tf_ = getSdfBool(sdf, "publish_odom_tf", true);
 
@@ -154,12 +156,8 @@ private:
       limitRate(front_left.steer_angle, front_left_steer_cmd_, max_steer_rate_, dt);
     front_right_steer_cmd_ =
       limitRate(front_right.steer_angle, front_right_steer_cmd_, max_steer_rate_, dt);
-    if (front_left_steer_joint_) {
-      front_left_steer_joint_->SetPosition(0, front_left_steer_cmd_);
-    }
-    if (front_right_steer_joint_) {
-      front_right_steer_joint_->SetPosition(0, front_right_steer_cmd_);
-    }
+    setSteerPosition(front_left_steer_joint_, front_left_steer_cmd_);
+    setSteerPosition(front_right_steer_joint_, front_right_steer_cmd_);
 
     front_left_wheel_velocity_cmd_ = limitRate(
       front_left.linear_speed / wheel_radius_, front_left_wheel_velocity_cmd_,
@@ -232,6 +230,19 @@ private:
       joint->SetParam("fmax", 0, max_wheel_torque_);
       joint->SetParam("vel", 0, velocity);
     }
+  }
+
+  void setSteerPosition(const gazebo::physics::JointPtr & joint, const double target_position)
+  {
+    if (!joint) {
+      return;
+    }
+
+    const double position_error = target_position - joint->Position(0);
+    const double velocity = std::clamp(
+      position_error * steer_position_gain_, -max_steer_rate_, max_steer_rate_);
+    joint->SetParam("fmax", 0, max_steer_torque_);
+    joint->SetParam("vel", 0, velocity);
   }
 
   void publishWheelVelocityCommands(const gazebo::common::Time & sim_time)
@@ -330,6 +341,8 @@ private:
   double max_wheel_torque_{20.0};
   double max_wheel_acceleration_{8.0};
   double max_steer_rate_{2.0};
+  double max_steer_torque_{12.0};
+  double steer_position_gain_{6.0};
   double command_timeout_{1.0};
   bool publish_odom_tf_{true};
 
