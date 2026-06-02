@@ -5,7 +5,8 @@
 
     <link name="base_link">
       <inertial>
-        <mass>28.0</mass>
+        <pose>-0.15 0 0 0 0 0</pose>
+        <mass>20.0</mass>
         <inertia>
           <ixx>1.10</ixx>
           <ixy>0.0</ixy>
@@ -581,7 +582,7 @@
       <wheel_separation>0.68</wheel_separation>
       <wheel_diameter>0.24</wheel_diameter>
 
-      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_torque>6.0</max_wheel_torque>
       <max_wheel_acceleration>2.0</max_wheel_acceleration>
 
       <publish_odom>true</publish_odom>

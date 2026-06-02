@@ -5,7 +5,8 @@
 
     <link name="base_link">
       <inertial>
-        <mass>36.0</mass>
+        <pose>-0.15 0 0 0 0 0</pose>
+        <mass>25.0</mass>
         <inertia>
           <ixx>1.45</ixx>
           <ixy>0.0</ixy>
@@ -538,6 +539,7 @@
       </ros>
       <cmd_vel_topic>cmd_vel</cmd_vel_topic>
       <odom_topic>odom</odom_topic>
+      <wheel_velocity_cmd_topic>wheel_velocity_cmds</wheel_velocity_cmd_topic>
       <odom_frame>odom</odom_frame>
       <base_frame>base_link</base_frame>
       <wheel_base>0.72</wheel_base>
@@ -548,7 +550,7 @@
       <max_wheel_torque>8.0</max_wheel_torque>
       <max_wheel_acceleration>8.0</max_wheel_acceleration>
       <max_steer_rate>2.0</max_steer_rate>
-      <command_timeout>0.3</command_timeout>
+      <command_timeout>1.0</command_timeout>
       <publish_odom_tf>true</publish_odom_tf>
     </plugin>
   </model>

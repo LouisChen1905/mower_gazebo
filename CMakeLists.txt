@@ -46,6 +46,7 @@ ament_target_dependencies(ackermann_4wd_drive_plugin
   geometry_msgs
   nav_msgs
   rclcpp
+  sensor_msgs
   tf2_geometry_msgs
   tf2_ros
 )
