@@ -15,6 +15,12 @@
 
 namespace mower_gazebo
 {
+struct WheelMotion
+{
+  double steer_angle{0.0};
+  double linear_speed{0.0};
+};
+
 class Ackermann4wdDrivePlugin : public gazebo::ModelPlugin
 {
 public:
@@ -32,6 +38,8 @@ public:
     wheel_track_ = getSdfDouble(sdf, "wheel_track", 0.64);
     wheel_radius_ = getSdfDouble(sdf, "wheel_radius", 0.12);
     max_steer_angle_ = getSdfDouble(sdf, "max_steer_angle", 0.65);
+    rear_axle_to_base_ = getSdfDouble(sdf, "rear_axle_to_base", wheel_base_ * 0.5);
+    max_wheel_torque_ = getSdfDouble(sdf, "max_wheel_torque", 20.0);
     command_timeout_ = getSdfDouble(sdf, "command_timeout", 0.3);
     publish_odom_tf_ = getSdfBool(sdf, "publish_odom_tf", true);
 
@@ -98,57 +106,89 @@ private:
     const double linear = command_age <= command_timeout_ ? linear_cmd_ : 0.0;
     const double angular = command_age <= command_timeout_ ? angular_cmd_ : 0.0;
 
-    const auto pose = model_->WorldPose();
-    const double yaw = pose.Rot().Yaw();
-    model_->SetLinearVel({linear * std::cos(yaw), linear * std::sin(yaw), 0.0});
-    model_->SetAngularVel({0.0, 0.0, angular});
-
     updateSteeringAndWheels(linear, angular);
-    publishOdometry(info.simTime, pose, linear, angular);
+    publishOdometry(info.simTime);
   }
 
   void updateSteeringAndWheels(const double linear, const double angular)
   {
-    double left_steer = 0.0;
-    double right_steer = 0.0;
+    const double half_track = wheel_track_ * 0.5;
+    const auto front_left = wheelMotionFromRearAxleCenter(wheel_base_, half_track, linear, angular);
+    const auto front_right = wheelMotionFromRearAxleCenter(wheel_base_, -half_track, linear, angular);
+    const auto rear_left = wheelMotionFromRearAxleCenter(0.0, half_track, linear, angular);
+    const auto rear_right = wheelMotionFromRearAxleCenter(0.0, -half_track, linear, angular);
 
-    if (std::abs(linear) > 1e-3 && std::abs(angular) > 1e-3) {
-      const double turn_radius = linear / angular;
-      left_steer = std::atan2(wheel_base_, turn_radius - std::copysign(wheel_track_ * 0.5, angular));
-      right_steer = std::atan2(wheel_base_, turn_radius + std::copysign(wheel_track_ * 0.5, angular));
-    }
+    // RCLCPP_INFO(
+    //   node_->get_logger(),
+    //   "linear: %.2f m/s, angular: %.2f rad/s, left_steer: %.2f deg, right_steer: %.2f deg",
+    //   linear, angular,
+    //   front_left.steer_angle * 180.0 / M_PI,
+    //   front_right.steer_angle * 180.0 / M_PI);
 
-    left_steer = std::clamp(left_steer, -max_steer_angle_, max_steer_angle_);
-    right_steer = std::clamp(right_steer, -max_steer_angle_, max_steer_angle_);
     if (front_left_steer_joint_) {
-      front_left_steer_joint_->SetPosition(0, left_steer);
+      front_left_steer_joint_->SetPosition(0, front_left.steer_angle);
     }
     if (front_right_steer_joint_) {
-      front_right_steer_joint_->SetPosition(0, right_steer);
+      front_right_steer_joint_->SetPosition(0, front_right.steer_angle);
     }
 
-    const double left_wheel_velocity = (linear - angular * wheel_track_ * 0.5) / wheel_radius_;
-    const double right_wheel_velocity = (linear + angular * wheel_track_ * 0.5) / wheel_radius_;
-    setWheelVelocity(front_left_wheel_joint_, left_wheel_velocity);
-    setWheelVelocity(rear_left_wheel_joint_, left_wheel_velocity);
-    setWheelVelocity(front_right_wheel_joint_, right_wheel_velocity);
-    setWheelVelocity(rear_right_wheel_joint_, right_wheel_velocity);
+    setWheelVelocity(front_left_wheel_joint_, front_left.linear_speed / wheel_radius_);
+    setWheelVelocity(front_right_wheel_joint_, front_right.linear_speed / wheel_radius_);
+    setWheelVelocity(rear_left_wheel_joint_, rear_left.linear_speed / wheel_radius_);
+    setWheelVelocity(rear_right_wheel_joint_, rear_right.linear_speed / wheel_radius_);
   }
 
-  static void setWheelVelocity(const gazebo::physics::JointPtr & joint, const double velocity)
+  WheelMotion wheelMotionFromRearAxleCenter(
+    const double wheel_x,
+    const double wheel_y,
+    const double rear_axle_linear,
+    const double angular) const
+  {
+    const double velocity_x = rear_axle_linear - angular * wheel_y;
+    const double velocity_y = angular * wheel_x;
+
+    WheelMotion motion;
+    if (std::abs(wheel_x) < 1e-6) {
+      motion.linear_speed = velocity_x;
+      return motion;
+    }
+
+    motion.steer_angle = std::atan2(velocity_y, velocity_x);
+    motion.linear_speed = std::hypot(velocity_x, velocity_y);
+
+    if (motion.steer_angle > M_PI_2) {
+      motion.steer_angle -= M_PI;
+      motion.linear_speed = -motion.linear_speed;
+    } else if (motion.steer_angle < -M_PI_2) {
+      motion.steer_angle += M_PI;
+      motion.linear_speed = -motion.linear_speed;
+    }
+
+    motion.steer_angle = std::clamp(motion.steer_angle, -max_steer_angle_, max_steer_angle_);
+    motion.linear_speed =
+      velocity_x * std::cos(motion.steer_angle) + velocity_y * std::sin(motion.steer_angle);
+    return motion;
+  }
+
+  void setWheelVelocity(const gazebo::physics::JointPtr & joint, const double velocity)
   {
     if (joint) {
-      joint->SetVelocity(0, velocity);
+      joint->SetParam("fmax", 0, max_wheel_torque_);
+      joint->SetParam("vel", 0, velocity);
     }
   }
 
-  void publishOdometry(
-    const gazebo::common::Time & sim_time,
-    const ignition::math::Pose3d & pose,
-    const double linear,
-    const double angular)
+  void publishOdometry(const gazebo::common::Time & sim_time)
   {
     const rclcpp::Time stamp(sim_time.sec, sim_time.nsec, RCL_ROS_TIME);
+    const auto pose = model_->WorldPose();
+    const auto world_linear = model_->WorldLinearVel();
+    const auto world_angular = model_->WorldAngularVel();
+    const double yaw = pose.Rot().Yaw();
+    const double body_linear_x =
+      world_linear.X() * std::cos(yaw) + world_linear.Y() * std::sin(yaw);
+    const double body_linear_y =
+      -world_linear.X() * std::sin(yaw) + world_linear.Y() * std::cos(yaw);
 
     nav_msgs::msg::Odometry odom;
     odom.header.stamp = stamp;
@@ -161,8 +201,9 @@ private:
     odom.pose.pose.orientation.y = pose.Rot().Y();
     odom.pose.pose.orientation.z = pose.Rot().Z();
     odom.pose.pose.orientation.w = pose.Rot().W();
-    odom.twist.twist.linear.x = linear;
-    odom.twist.twist.angular.z = angular;
+    odom.twist.twist.linear.x = body_linear_x;
+    odom.twist.twist.linear.y = body_linear_y;
+    odom.twist.twist.angular.z = world_angular.Z();
     odom_publisher_->publish(odom);
 
     if (!publish_odom_tf_) {
@@ -204,6 +245,8 @@ private:
   double wheel_track_{0.64};
   double wheel_radius_{0.12};
   double max_steer_angle_{0.65};
+  double rear_axle_to_base_{0.36};
+  double max_wheel_torque_{20.0};
   double command_timeout_{0.3};
   bool publish_odom_tf_{true};
 

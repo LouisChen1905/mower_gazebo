@@ -68,14 +68,36 @@
           <diffuse>0.02 0.02 0.02 1</diffuse>
         </material>
       </visual>
-      <visual name="ackermann_top_text">
-        <pose>-0.19 -0.055 0.373 0 0 0</pose>
+      <visual name="ackermann_top_mark_left">
+        <pose>-0.075 0.0 0.374 0 0 0.50</pose>
         <geometry>
-          <text>
-            <string>ACKERMANN</string>
-            <font_size>0.075</font_size>
-            <align>left</align>
-          </text>
+          <box>
+            <size>0.22 0.035 0.012</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.95 0.95 0.95 1</ambient>
+          <diffuse>0.95 0.95 0.95 1</diffuse>
+        </material>
+      </visual>
+      <visual name="ackermann_top_mark_right">
+        <pose>0.075 0.0 0.374 0 0 -0.50</pose>
+        <geometry>
+          <box>
+            <size>0.22 0.035 0.012</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.95 0.95 0.95 1</ambient>
+          <diffuse>0.95 0.95 0.95 1</diffuse>
+        </material>
+      </visual>
+      <visual name="ackermann_top_mark_crossbar">
+        <pose>0.0 0.0 0.376 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.13 0.030 0.012</size>
+          </box>
         </geometry>
         <material>
           <ambient>0.95 0.95 0.95 1</ambient>
@@ -419,8 +441,8 @@
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
-          <lower>-0.65</lower>
-          <upper>0.65</upper>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
         </limit>
         <dynamics>
           <damping>0.4</damping>
@@ -433,8 +455,8 @@
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
-          <lower>-0.65</lower>
-          <upper>0.65</upper>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
         </limit>
         <dynamics>
           <damping>0.4</damping>
@@ -501,7 +523,9 @@
       <wheel_base>0.72</wheel_base>
       <wheel_track>0.72</wheel_track>
       <wheel_radius>0.12</wheel_radius>
-      <max_steer_angle>0.65</max_steer_angle>
+      <rear_axle_to_base>0.36</rear_axle_to_base>
+      <max_steer_angle>1.4</max_steer_angle>
+      <max_wheel_torque>25.0</max_wheel_torque>
       <command_timeout>0.3</command_timeout>
       <publish_odom_tf>true</publish_odom_tf>
     </plugin>
