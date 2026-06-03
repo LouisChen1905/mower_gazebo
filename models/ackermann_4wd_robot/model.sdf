@@ -209,7 +209,7 @@
     </link>
 
     <link name="front_left_wheel">
-      <pose>0.36 0.36 -0.02 0 0 0</pose>
+      <pose>0.36 0.36 -0.055 0 0 0</pose>
       <inertial>
         <mass>1.6</mass>
         <inertia>
@@ -225,7 +225,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.085</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -244,7 +244,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.085</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -256,7 +256,7 @@
     </link>
 
     <link name="front_right_wheel">
-      <pose>0.36 -0.36 -0.02 0 0 0</pose>
+      <pose>0.36 -0.36 -0.055 0 0 0</pose>
       <inertial>
         <mass>1.6</mass>
         <inertia>
@@ -272,7 +272,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.085</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -291,7 +291,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.085</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -383,7 +383,7 @@
     </link>
 
     <link name="rear_left_wheel">
-      <pose>-0.36 0.36 -0.02 0 0 0</pose>
+      <pose>-0.36 0.36 -0.04 0 0 0</pose>
       <inertial>
         <mass>1.6</mass>
         <inertia>
@@ -399,7 +399,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.10</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -418,7 +418,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.10</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -430,7 +430,7 @@
     </link>
 
     <link name="rear_right_wheel">
-      <pose>-0.36 -0.36 -0.02 0 0 0</pose>
+      <pose>-0.36 -0.36 -0.04 0 0 0</pose>
       <inertial>
         <mass>1.6</mass>
         <inertia>
@@ -446,7 +446,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.10</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -465,7 +465,7 @@
         <pose>0 0 0 -1.5708 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.12</radius>
+            <radius>0.10</radius>
             <length>0.08</length>
           </cylinder>
         </geometry>
@@ -728,7 +728,8 @@
       <base_frame>base_link</base_frame>
       <wheel_base>0.72</wheel_base>
       <wheel_track>0.72</wheel_track>
-      <wheel_radius>0.12</wheel_radius>
+      <front_wheel_radius>0.085</front_wheel_radius>
+      <rear_wheel_radius>0.10</rear_wheel_radius>
       <rear_axle_to_base>0.36</rear_axle_to_base>
       <max_steer_angle>1.4</max_steer_angle>
       <max_wheel_torque>8.0</max_wheel_torque>
