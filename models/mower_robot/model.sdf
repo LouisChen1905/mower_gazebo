@@ -311,7 +311,7 @@
     </link>
 
     <link name="camera_link">
-      <pose>0.40 0.0 0.30 0 0 0</pose>
+      <pose>0.50 0.0 0.30 0 0 0</pose>
       <inertial>
         <mass>0.08</mass>
         <inertia>
