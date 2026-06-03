@@ -37,6 +37,8 @@ public:
     wheel_base_ = getSdfDouble(sdf, "wheel_base", 0.72);
     wheel_track_ = getSdfDouble(sdf, "wheel_track", 0.64);
     wheel_radius_ = getSdfDouble(sdf, "wheel_radius", 0.12);
+    front_wheel_radius_ = getSdfDouble(sdf, "front_wheel_radius", wheel_radius_);
+    rear_wheel_radius_ = getSdfDouble(sdf, "rear_wheel_radius", wheel_radius_);
     max_steer_angle_ = getSdfDouble(sdf, "max_steer_angle", 0.65);
     rear_axle_to_base_ = getSdfDouble(sdf, "rear_axle_to_base", wheel_base_ * 0.5);
     max_wheel_torque_ = getSdfDouble(sdf, "max_wheel_torque", 20.0);
@@ -142,16 +144,16 @@ private:
     }
 
     front_left_wheel_velocity_cmd_ = limitRate(
-      front_left.linear_speed / wheel_radius_, front_left_wheel_velocity_cmd_,
+      front_left.linear_speed / front_wheel_radius_, front_left_wheel_velocity_cmd_,
       max_wheel_acceleration_, dt);
     front_right_wheel_velocity_cmd_ = limitRate(
-      front_right.linear_speed / wheel_radius_, front_right_wheel_velocity_cmd_,
+      front_right.linear_speed / front_wheel_radius_, front_right_wheel_velocity_cmd_,
       max_wheel_acceleration_, dt);
     rear_left_wheel_velocity_cmd_ = limitRate(
-      rear_left.linear_speed / wheel_radius_, rear_left_wheel_velocity_cmd_,
+      rear_left.linear_speed / rear_wheel_radius_, rear_left_wheel_velocity_cmd_,
       max_wheel_acceleration_, dt);
     rear_right_wheel_velocity_cmd_ = limitRate(
-      rear_right.linear_speed / wheel_radius_, rear_right_wheel_velocity_cmd_,
+      rear_right.linear_speed / rear_wheel_radius_, rear_right_wheel_velocity_cmd_,
       max_wheel_acceleration_, dt);
 
     setWheelVelocity(front_left_wheel_joint_, front_left_wheel_velocity_cmd_);
@@ -279,6 +281,8 @@ private:
   double wheel_base_{0.72};
   double wheel_track_{0.64};
   double wheel_radius_{0.12};
+  double front_wheel_radius_{0.12};
+  double rear_wheel_radius_{0.12};
   double max_steer_angle_{0.65};
   double rear_axle_to_base_{0.36};
   double max_wheel_torque_{20.0};
