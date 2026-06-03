@@ -5,6 +5,7 @@
 
     <link name="base_link">
       <inertial>
+        <pose>-0.15 0 0 0 0 0</pose>
         <mass>36.0</mass>
         <inertia>
           <ixx>1.45</ixx>
@@ -301,6 +302,86 @@
       </visual>
     </link>
 
+    <link name="rear_left_suspension_link">
+      <pose>-0.36 0.36 -0.02 0 0 0</pose>
+      <inertial>
+        <mass>0.8</mass>
+        <inertia>
+          <ixx>0.003</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.003</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.003</izz>
+        </inertia>
+      </inertial>
+      <visual name="suspension_upright">
+        <pose>0 -0.03 0.08 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.08 0.05 0.18</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.18 0.18 1</ambient>
+          <diffuse>0.22 0.22 0.22 1</diffuse>
+        </material>
+      </visual>
+      <visual name="spring_body">
+        <pose>0 -0.03 0.10 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.025</radius>
+            <length>0.20</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.08 0.08 0.08 1</ambient>
+          <diffuse>0.10 0.10 0.10 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <link name="rear_right_suspension_link">
+      <pose>-0.36 -0.36 -0.02 0 0 0</pose>
+      <inertial>
+        <mass>0.8</mass>
+        <inertia>
+          <ixx>0.003</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.003</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.003</izz>
+        </inertia>
+      </inertial>
+      <visual name="suspension_upright">
+        <pose>0 0.03 0.08 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.08 0.05 0.18</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.18 0.18 1</ambient>
+          <diffuse>0.22 0.22 0.22 1</diffuse>
+        </material>
+      </visual>
+      <visual name="spring_body">
+        <pose>0 0.03 0.10 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.025</radius>
+            <length>0.20</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.08 0.08 0.08 1</ambient>
+          <diffuse>0.10 0.10 0.10 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
     <link name="rear_left_wheel">
       <pose>-0.36 0.36 -0.04 0 0 0</pose>
       <inertial>
@@ -505,8 +586,42 @@
         </limit>
       </axis>
     </joint>
-    <joint name="rear_left_wheel_joint" type="revolute">
+    <joint name="rear_left_suspension_joint" type="prismatic">
       <parent>base_link</parent>
+      <child>rear_left_suspension_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <use_parent_model_frame>true</use_parent_model_frame>
+        <limit>
+          <lower>-0.04</lower>
+          <upper>0.03</upper>
+        </limit>
+        <dynamics>
+          <damping>180.0</damping>
+          <spring_reference>0.0</spring_reference>
+          <spring_stiffness>8000.0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <joint name="rear_right_suspension_joint" type="prismatic">
+      <parent>base_link</parent>
+      <child>rear_right_suspension_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <use_parent_model_frame>true</use_parent_model_frame>
+        <limit>
+          <lower>-0.04</lower>
+          <upper>0.03</upper>
+        </limit>
+        <dynamics>
+          <damping>180.0</damping>
+          <spring_reference>0.0</spring_reference>
+          <spring_stiffness>8000.0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <joint name="rear_left_wheel_joint" type="revolute">
+      <parent>rear_left_suspension_link</parent>
       <child>rear_left_wheel</child>
       <axis>
         <xyz>0 1 0</xyz>
@@ -517,7 +632,7 @@
       </axis>
     </joint>
     <joint name="rear_right_wheel_joint" type="revolute">
-      <parent>base_link</parent>
+      <parent>rear_right_suspension_link</parent>
       <child>rear_right_wheel</child>
       <axis>
         <xyz>0 1 0</xyz>
@@ -538,6 +653,7 @@
       </ros>
       <cmd_vel_topic>cmd_vel</cmd_vel_topic>
       <odom_topic>odom</odom_topic>
+      <wheel_velocity_cmd_topic>wheel_velocity_cmds</wheel_velocity_cmd_topic>
       <odom_frame>odom</odom_frame>
       <base_frame>base_link</base_frame>
       <wheel_base>0.72</wheel_base>
@@ -549,7 +665,9 @@
       <max_wheel_torque>8.0</max_wheel_torque>
       <max_wheel_acceleration>8.0</max_wheel_acceleration>
       <max_steer_rate>2.0</max_steer_rate>
-      <command_timeout>0.3</command_timeout>
+      <max_steer_torque>12.0</max_steer_torque>
+      <steer_position_gain>6.0</steer_position_gain>
+      <command_timeout>1.0</command_timeout>
       <publish_odom_tf>true</publish_odom_tf>
     </plugin>
   </model>

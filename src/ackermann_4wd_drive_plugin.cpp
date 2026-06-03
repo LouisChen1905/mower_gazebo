@@ -11,6 +11,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
 namespace mower_gazebo
@@ -32,6 +33,8 @@ public:
 
     cmd_vel_topic_ = getSdfString(sdf, "cmd_vel_topic", "cmd_vel");
     odom_topic_ = getSdfString(sdf, "odom_topic", "odom");
+    wheel_velocity_cmd_topic_ =
+      getSdfString(sdf, "wheel_velocity_cmd_topic", "wheel_velocity_cmds");
     odom_frame_ = getSdfString(sdf, "odom_frame", "odom");
     base_frame_ = getSdfString(sdf, "base_frame", "base_link");
     wheel_base_ = getSdfDouble(sdf, "wheel_base", 0.72);
@@ -44,17 +47,34 @@ public:
     max_wheel_torque_ = getSdfDouble(sdf, "max_wheel_torque", 20.0);
     max_wheel_acceleration_ = getSdfDouble(sdf, "max_wheel_acceleration", 8.0);
     max_steer_rate_ = getSdfDouble(sdf, "max_steer_rate", 2.0);
-    command_timeout_ = getSdfDouble(sdf, "command_timeout", 0.3);
+    max_steer_torque_ = getSdfDouble(sdf, "max_steer_torque", 12.0);
+    steer_position_gain_ = getSdfDouble(sdf, "steer_position_gain", 6.0);
+    command_timeout_ = getSdfDouble(sdf, "command_timeout", 1.0);
     publish_odom_tf_ = getSdfBool(sdf, "publish_odom_tf", true);
 
-    front_left_steer_joint_ = getJoint(sdf, "front_left_steer_joint", "front_left_steer_joint");
-    front_right_steer_joint_ = getJoint(sdf, "front_right_steer_joint", "front_right_steer_joint");
-    front_left_wheel_joint_ = getJoint(sdf, "front_left_wheel_joint", "front_left_wheel_joint");
-    front_right_wheel_joint_ = getJoint(sdf, "front_right_wheel_joint", "front_right_wheel_joint");
-    rear_left_wheel_joint_ = getJoint(sdf, "rear_left_wheel_joint", "rear_left_wheel_joint");
-    rear_right_wheel_joint_ = getJoint(sdf, "rear_right_wheel_joint", "rear_right_wheel_joint");
+    front_left_steer_joint_name_ =
+      getSdfString(sdf, "front_left_steer_joint", "front_left_steer_joint");
+    front_right_steer_joint_name_ =
+      getSdfString(sdf, "front_right_steer_joint", "front_right_steer_joint");
+    front_left_wheel_joint_name_ =
+      getSdfString(sdf, "front_left_wheel_joint", "front_left_wheel_joint");
+    front_right_wheel_joint_name_ =
+      getSdfString(sdf, "front_right_wheel_joint", "front_right_wheel_joint");
+    rear_left_wheel_joint_name_ =
+      getSdfString(sdf, "rear_left_wheel_joint", "rear_left_wheel_joint");
+    rear_right_wheel_joint_name_ =
+      getSdfString(sdf, "rear_right_wheel_joint", "rear_right_wheel_joint");
+
+    front_left_steer_joint_ = getJoint(front_left_steer_joint_name_);
+    front_right_steer_joint_ = getJoint(front_right_steer_joint_name_);
+    front_left_wheel_joint_ = getJoint(front_left_wheel_joint_name_);
+    front_right_wheel_joint_ = getJoint(front_right_wheel_joint_name_);
+    rear_left_wheel_joint_ = getJoint(rear_left_wheel_joint_name_);
+    rear_right_wheel_joint_ = getJoint(rear_right_wheel_joint_name_);
 
     odom_publisher_ = node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic_, 10);
+    wheel_velocity_cmd_publisher_ =
+      node_->create_publisher<sensor_msgs::msg::JointState>(wheel_velocity_cmd_topic_, 10);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
     cmd_vel_subscription_ = node_->create_subscription<geometry_msgs::msg::Twist>(
       cmd_vel_topic_, 10,
@@ -94,10 +114,8 @@ private:
     return sdf->HasElement(name) ? sdf->Get<bool>(name) : default_value;
   }
 
-  gazebo::physics::JointPtr getJoint(
-    const sdf::ElementPtr & sdf, const std::string & tag_name, const std::string & default_name)
+  gazebo::physics::JointPtr getJoint(const std::string & joint_name)
   {
-    const auto joint_name = getSdfString(sdf, tag_name, default_name);
     auto joint = model_->GetJoint(joint_name);
     if (!joint) {
       RCLCPP_ERROR(node_->get_logger(), "Joint [%s] was not found", joint_name.c_str());
@@ -113,11 +131,15 @@ private:
     const double linear = command_age <= command_timeout_ ? linear_cmd_ : 0.0;
     const double angular = command_age <= command_timeout_ ? angular_cmd_ : 0.0;
 
-    updateSteeringAndWheels(linear, angular, dt);
+    updateSteeringAndWheels(linear, angular, dt, info.simTime);
     publishOdometry(info.simTime);
   }
 
-  void updateSteeringAndWheels(const double linear, const double angular, const double dt)
+  void updateSteeringAndWheels(
+    const double linear,
+    const double angular,
+    const double dt,
+    const gazebo::common::Time & sim_time)
   {
     const double half_track = wheel_track_ * 0.5;
     const auto front_left = wheelMotionFromRearAxleCenter(wheel_base_, half_track, linear, angular);
@@ -136,12 +158,8 @@ private:
       limitRate(front_left.steer_angle, front_left_steer_cmd_, max_steer_rate_, dt);
     front_right_steer_cmd_ =
       limitRate(front_right.steer_angle, front_right_steer_cmd_, max_steer_rate_, dt);
-    if (front_left_steer_joint_) {
-      front_left_steer_joint_->SetPosition(0, front_left_steer_cmd_);
-    }
-    if (front_right_steer_joint_) {
-      front_right_steer_joint_->SetPosition(0, front_right_steer_cmd_);
-    }
+    setSteerPosition(front_left_steer_joint_, front_left_steer_cmd_);
+    setSteerPosition(front_right_steer_joint_, front_right_steer_cmd_);
 
     front_left_wheel_velocity_cmd_ = limitRate(
       front_left.linear_speed / front_wheel_radius_, front_left_wheel_velocity_cmd_,
@@ -160,6 +178,7 @@ private:
     setWheelVelocity(front_right_wheel_joint_, front_right_wheel_velocity_cmd_);
     setWheelVelocity(rear_left_wheel_joint_, rear_left_wheel_velocity_cmd_);
     setWheelVelocity(rear_right_wheel_joint_, rear_right_wheel_velocity_cmd_);
+    publishWheelVelocityCommands(sim_time);
   }
 
   WheelMotion wheelMotionFromRearAxleCenter(
@@ -215,6 +234,36 @@ private:
     }
   }
 
+  void setSteerPosition(const gazebo::physics::JointPtr & joint, const double target_position)
+  {
+    if (!joint) {
+      return;
+    }
+
+    const double position_error = target_position - joint->Position(0);
+    const double velocity = std::clamp(
+      position_error * steer_position_gain_, -max_steer_rate_, max_steer_rate_);
+    joint->SetParam("fmax", 0, max_steer_torque_);
+    joint->SetParam("vel", 0, velocity);
+  }
+
+  void publishWheelVelocityCommands(const gazebo::common::Time & sim_time)
+  {
+    sensor_msgs::msg::JointState wheel_velocity_cmds;
+    wheel_velocity_cmds.header.stamp = rclcpp::Time(sim_time.sec, sim_time.nsec, RCL_ROS_TIME);
+    wheel_velocity_cmds.name = {
+      front_left_wheel_joint_name_,
+      front_right_wheel_joint_name_,
+      rear_left_wheel_joint_name_,
+      rear_right_wheel_joint_name_};
+    wheel_velocity_cmds.velocity = {
+      front_left_wheel_velocity_cmd_,
+      front_right_wheel_velocity_cmd_,
+      rear_left_wheel_velocity_cmd_,
+      rear_right_wheel_velocity_cmd_};
+    wheel_velocity_cmd_publisher_->publish(wheel_velocity_cmds);
+  }
+
   void publishOdometry(const gazebo::common::Time & sim_time)
   {
     const rclcpp::Time stamp(sim_time.sec, sim_time.nsec, RCL_ROS_TIME);
@@ -265,6 +314,7 @@ private:
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_subscription_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr wheel_velocity_cmd_publisher_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   gazebo::physics::JointPtr front_left_steer_joint_;
@@ -276,8 +326,15 @@ private:
 
   std::string cmd_vel_topic_;
   std::string odom_topic_;
+  std::string wheel_velocity_cmd_topic_;
   std::string odom_frame_;
   std::string base_frame_;
+  std::string front_left_steer_joint_name_;
+  std::string front_right_steer_joint_name_;
+  std::string front_left_wheel_joint_name_;
+  std::string front_right_wheel_joint_name_;
+  std::string rear_left_wheel_joint_name_;
+  std::string rear_right_wheel_joint_name_;
   double wheel_base_{0.72};
   double wheel_track_{0.64};
   double wheel_radius_{0.12};
@@ -288,7 +345,9 @@ private:
   double max_wheel_torque_{20.0};
   double max_wheel_acceleration_{8.0};
   double max_steer_rate_{2.0};
-  double command_timeout_{0.3};
+  double max_steer_torque_{12.0};
+  double steer_position_gain_{6.0};
+  double command_timeout_{1.0};
   bool publish_odom_tf_{true};
 
   double linear_cmd_{0.0};

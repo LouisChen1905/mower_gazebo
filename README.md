@@ -9,6 +9,7 @@
 - `visual_obstacle_simulator_node`: clusters the front ToF point cloud into separate `mower_msgs/msg/VisualObs` objects on the front visual-obstacle topic.
 - `launch/mower_gazebo.launch.py`: starts Gazebo Classic, loads the bundled world, and launches both nodes with default parameters.
 - `worlds/mower_test.world`: flat test world with a 40 m x 40 m ground plane, a simple square collision boundary, the `mower_robot` model, and a visual `boundary_points` model.
+- `worlds/mower_slope_bumpy.world`: terrain test world with a bumpy road section, a 30 degree slope, a raised platform, the `mower_robot` model, and a visual `boundary_points` model.
 - `models/mower_robot/model.sdf`: differential-drive mower model with rear drive wheels, front caster wheels, a Gazebo ROS diff-drive plugin, a front ToF ray sensor, and a camera.
 - `worlds/mower_ackermann_4wd.world`: flat test world that loads the `ackermann_4wd_robot` model.
 - `models/ackermann_4wd_robot/model.sdf`: Ackermann-steered mower model with four driven wheels and a package-local Gazebo plugin for `/cmd_vel` and `/odom`.
@@ -62,6 +63,13 @@ Launch the Ackermann + 4WD model:
 ros2 launch mower_gazebo mower_gazebo.launch.py \
   world:=$(ros2 pkg prefix mower_gazebo)/share/mower_gazebo/worlds/mower_ackermann_4wd.world \
   model_name:=ackermann_4wd_robot
+```
+
+Launch the slope and bumpy-road terrain:
+
+```bash
+ros2 launch mower_gazebo mower_gazebo.launch.py \
+  world:=$(ros2 pkg prefix mower_gazebo)/share/mower_gazebo/worlds/mower_slope_bumpy.world
 ```
 
 Useful runtime interfaces inferred from the code:
