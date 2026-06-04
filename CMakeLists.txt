@@ -92,10 +92,14 @@ target_include_directories(visual_obstacle_simulator_node PUBLIC
   ${mower_wrapper_client_INCLUDE_DIRS}
 )
 ament_target_dependencies(visual_obstacle_simulator_node
+  geometry_msgs
   mower_msgs
   mower_wrapper_client
   rclcpp
   sensor_msgs
+  tf2
+  tf2_geometry_msgs
+  tf2_ros
 )
 
 add_executable(livox_point_cloud_converter_node src/livox_point_cloud_converter_node.cpp)
